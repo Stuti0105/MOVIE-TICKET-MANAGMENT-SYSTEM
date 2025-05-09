@@ -1,0 +1,151 @@
+#include <iostream>
+#include <mysql.h>
+#include <mysqld_error.h>
+#include <windows.h>
+#include <sstream>
+using namespace std;
+
+const char *HOST = "localhost";
+const char *USER = "root";
+const char *DB = "expenses";
+char PASSW[10];
+const string prefix[3] = {"Credit :- ", "Debit :- ", "Savings :- "};
+
+class Expenditure
+{
+private:
+    string creditamount;
+    string savingamount;
+    string debitamount;
+
+public:
+    Expenditure(const string &credit, string saving, const string &debit) : creditamount(credit), savingamount(saving), debitamount(debit)
+    {
+        cout << "Debit: " << debitamount << "\tCredit: " << creditamount << "\tSavings: Rs. " << savingamount << endl;
+    }
+};
+class Tracker
+{
+public:
+    string addExpenditure()
+    {
+        string credit, debit, saving;
+        cout << "\nEnter credit: ";
+        cin.ignore();
+        getline(cin, credit);
+        cout << "Enter debit: ";
+        getline(cin, debit);
+        cout << "Enter saving: ";
+        cin >> saving;
+        Expenditure(credit, saving, debit);
+        string query = "insert into expenditure values('" + credit + "','" + debit + "','" + saving + "')";
+        return query;
+    }
+};
+int main()
+{
+    MYSQL *conn;
+    conn = mysql_init(NULL);
+    cout << "Enter Password For The DataBase: ";
+    cin >> PASSW;
+    cout << "\n";
+    if (!mysql_real_connect(conn, HOST, USER, PASSW, DB, 3306, NULL, 0))
+    {
+        cout << mysql_error(conn);
+    }
+    else
+    {
+        Sleep(1000);
+        string loggedin = "Logged In...";
+        for (int i = 0; i < 12; i++)
+        {
+            cout << loggedin[i];
+            Sleep(100);
+        }
+
+        Sleep(150);
+    }
+    Tracker tracker;
+    char choice;
+    do
+    {
+        cout << "\n1. Add an expenditure\n";
+        cout << "2. Display expenditure\n";
+        cout << "3. Show total Savings\n";
+        cout << "4. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        if (choice == '1')
+        {
+            string query = tracker.addExpenditure();
+            if (mysql_query(conn, query.c_str()))
+            {
+                cout << mysql_error(conn) << endl;
+            }
+            else
+            {
+                cout << "Data inserted." << endl
+                     << endl;
+            }
+        }
+        if (choice == '2')
+        {
+            string query = "select * from expenditure";
+            if (mysql_query(conn, query.c_str()))
+            {
+                cout << mysql_error(conn) << endl;
+            }
+            else
+            {
+                cout << endl
+                     << endl;
+                MYSQL_RES *result = mysql_store_result(conn);
+                MYSQL_ROW row;
+                while (row = mysql_fetch_row(result))
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        cout << prefix[i] << row[i] << endl;
+                    }
+                    cout << endl;
+                }
+            }
+        }
+        if (choice == '3')
+        {
+            int total = 0;
+            int temp;
+            string query = "select * from expenditure";
+            if (mysql_query(conn, query.c_str()))
+            {
+                cout << mysql_error(conn) << endl;
+            }
+            else
+            {
+                cout << endl
+                     << endl;
+                MYSQL_RES *result = mysql_store_result(conn);
+                if (result)
+                {
+                    int num = mysql_num_fields(result);
+                }
+                MYSQL_ROW row;
+                while (row = mysql_fetch_row(result))
+                {
+                    sscanf(row[2], "%d", &temp);
+                    total = total + temp;
+                }
+                cout << "Total : " << total << endl;
+            }
+            cout << endl;
+        }
+        if (choice == '4')
+        {
+            cout << "Exiting...\n";
+            break;
+        }
+    } while (choice != '4');
+    return 0;
+}
+
